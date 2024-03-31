@@ -26,6 +26,7 @@ urlpatterns = [
     path('signout',views.signout,name='signout'),
     path('signin',views.signin,name='signin'),
     path('admin1', views.admin1, name='admin1'),
+    path('confirm/<str:token>/', views.confirm_account, name='confirm_account'),
     # path('signupparent/',views.signupparent,name='signupparent'),
     # path('signupchild/',views.signupchild,name='signupchild'),
     # path('loginchild/signupchild',views.signupchild,name='signupchild'),

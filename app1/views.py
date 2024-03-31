@@ -11,6 +11,14 @@ from django.contrib import messages
 
 from django.core.mail import send_mail
 from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError
+from django.contrib.sites.shortcuts import get_current_site
+from django.template.loader import render_to_string
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+
+
 
 
 def home(request):
@@ -21,6 +29,9 @@ def index(request):
 def signout(request):
     return redirect('home') 
 
+
+import uuid  # For generating unique tokens
+from django.urls import reverse
 
 def signuppage(request):
     if request.method == 'POST':
@@ -46,12 +57,17 @@ def signuppage(request):
             user = User.objects.create_user(username=username, email=email, password=pass1)
             user.first_name = fname
             user.last_name = lname
+            
+            # Generate unique token for confirmation
+            token = str(uuid.uuid4())
+            user.confirmation_token = token  # Save token in user model
             user.save()
 
-            # Send email
+            # Send email with confirmation link
+            confirmation_link = request.build_absolute_uri(reverse('confirm_account', kwargs={'token': token}))
             send_mail(
                 'Welcome to Our Site',
-                f'Hi {username},\n\nWelcome to our site!',
+                f'Hi {username},\n\nWelcome to our site! Please click the following link to confirm your account: {confirmation_link}',
                 'sender@example.com',
                 [email],
                 fail_silently=False,
@@ -66,28 +82,21 @@ def signuppage(request):
     return render(request, 'signuppage.html')
 
 
+def confirm_account(request, token):
+    try:
+        user = User.objects.get(confirmation_token=token)
+        user.is_active = True  # Activate user account
+        user.save()
+        messages.success(request, 'Account activated successfully. You can now login.')
+        return redirect('signin')
+    except User.DoesNotExist:
+        messages.error(request, 'Invalid confirmation link.')
+        return redirect('home')  # Redirect to home page if token is invalid
+
+
+
 def signin(request):
-    if request.method == 'POST':
-        username = request.POST['username']
-        pass1 = request.POST['pass1']
-        
-        user = authenticate(username=username, password=pass1)
-
-
-        if user is not None:
-            if user.is_staff:  # Checking if the user is an admin
-                login(request, user)
-                messages.success(request, "Logged In Successfully as Admin!!")
-                return redirect('admin1')  # Redirect admin to admin dashboard
-            else:
-                messages.error(request, "Logged In Successfully as Player!!")
-                return redirect('admin1')  # Redirect regular users to home page
-        else:
-            messages.error(request, "Bad Credentials!!")
-            return redirect('home')
-    
     return render(request, "signin.html")
-
 
 @login_required
 def admin1(request):
