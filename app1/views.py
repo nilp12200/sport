@@ -9,6 +9,9 @@ from django.http import HttpResponseBadRequest
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 
+from django.core.mail import send_mail
+from django.conf import settings
+
 
 def home(request):
     return render(request,'index.html') 
@@ -20,22 +23,47 @@ def signout(request):
 
 
 def signuppage(request):
-    if request.method=='POST':
-        username=request.POST.get('username')
-        fname=request.POST.get('fname')
-        lname=request.POST.get('lname')
-        email=request.POST.get('email')
-        pass1=request.POST.get('Pass1')
-        pass2=request.POST.get('Pass2')
-        my_user = User.objects.create_user(username=username, email=email, password=pass1)
-        my_user.first_name = fname
-        my_user.last_name = lname
-        my_user.save()
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        fname = request.POST.get('fname')
+        lname = request.POST.get('lname')
+        email = request.POST.get('email')
+        pass1 = request.POST.get('Pass1')
+        pass2 = request.POST.get('Pass2')
 
-        return redirect('signin')
-        # return HttpResponse("user has been created successuful")
-        # print(uname,email,password)
-    return render( request,'signuppage.html')
+        # Check if username already exists
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'Username already exists. Please choose a different one.')
+            return redirect('signuppage')
+
+        # Check if passwords match
+        if pass1 != pass2:
+            messages.error(request, 'Passwords do not match. Please try again.')
+            return redirect('signuppage')
+
+        # Create the user
+        try:
+            user = User.objects.create_user(username=username, email=email, password=pass1)
+            user.first_name = fname
+            user.last_name = lname
+            user.save()
+
+            # Send email
+            send_mail(
+                'Welcome to Our Site',
+                f'Hi {username},\n\nWelcome to our site!',
+                'sender@example.com',
+                [email],
+                fail_silently=False,
+            )
+
+            messages.success(request, 'Account created successfully. Check your email for verification.')
+            return redirect('signin')
+        except Exception as e:
+            messages.error(request, f'An error occurred: {e}')
+            return redirect('signuppage')
+
+    return render(request, 'signuppage.html')
 
 
 def signin(request):
