@@ -47,7 +47,7 @@ def signuppage(request):
             
             # Generate unique token for confirmation
             token = str(uuid.uuid4())
-            user.email = token  # Save token in user email field
+            user.email = email  # Save token in user email field
             user.save()
 
             # Send email with confirmation link
@@ -71,7 +71,7 @@ def signuppage(request):
 def activate(request, uidb64, token):
     try:
         user_id = urlsafe_base64_decode(uidb64).decode()
-        user = User.objects.get(pk=user_id, email=token)  # Use email field to store token
+        user = User.objects.get(pk=user_id)  # Use email field to store token
         user.is_active = True  # Activate user account
         user.save()
         messages.success(request, 'Account activated successfully. You can now login.')
