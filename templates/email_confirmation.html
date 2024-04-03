@@ -1,9 +1,9 @@
+<!-- email_confirmation.html -->
 {% autoescape off %}
+Welcome to Sport Guide Login!
+Hello {{ username }}!
+Please confirm your email by clicking on the following link:
 
- Welcome Sport Guide Login!!
- Hello !!
- Please confirm your email by clicking on the following link.
+Confirmation Link: <a href="http://{{ domain }}{% url 'activate' uidb64=uid token=token %}">Confirm Email</a>
 
- Confirmation Link: http://{{ domain }}{% url 'activate' uidb64=uid token=token %} 
-
- {% endautoescape %}
+{% endautoescape %}

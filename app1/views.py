@@ -1,37 +1,24 @@
-from django.shortcuts import render,HttpResponse,redirect
+# views.py
+from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate,login
-from django.shortcuts import render
-import razorpay
-from django.conf import settings
-from django.views.decorators.csrf import csrf_exempt
-from django.http import HttpResponseBadRequest
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
-
 from django.core.mail import send_mail
-from django.conf import settings
-from django.core.exceptions import ValidationError
-from django.db import IntegrityError
-from django.contrib.sites.shortcuts import get_current_site
-from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
-
-
+import uuid
+from django.utils.http import urlsafe_base64_decode
 
 
 def home(request):
-    return render(request,'index.html') 
- 
+    return render(request, 'index.html')
+
 def index(request):
-    return render(request,'index.html') 
+    return render(request, 'index.html')
+
 def signout(request):
-    return redirect('home') 
-
-
-import uuid  # For generating unique tokens
-from django.urls import reverse
+    return redirect('home')
 
 def signuppage(request):
     if request.method == 'POST':
@@ -60,11 +47,11 @@ def signuppage(request):
             
             # Generate unique token for confirmation
             token = str(uuid.uuid4())
-            user.confirmation_token = token  # Save token in user model
+            user.email = token  # Save token in user email field
             user.save()
 
             # Send email with confirmation link
-            confirmation_link = request.build_absolute_uri(reverse('confirm_account', kwargs={'token': token}))
+            confirmation_link = request.build_absolute_uri(reverse('activate', kwargs={'uidb64': urlsafe_base64_encode(force_bytes(user.pk)), 'token': token}))
             send_mail(
                 'Welcome to Our Site',
                 f'Hi {username},\n\nWelcome to our site! Please click the following link to confirm your account: {confirmation_link}',
@@ -81,10 +68,10 @@ def signuppage(request):
 
     return render(request, 'signuppage.html')
 
-
-def confirm_account(request, token):
+def activate(request, uidb64, token):
     try:
-        user = User.objects.get(confirmation_token=token)
+        user_id = urlsafe_base64_decode(uidb64).decode()
+        user = User.objects.get(pk=user_id, email=token)  # Use email field to store token
         user.is_active = True  # Activate user account
         user.save()
         messages.success(request, 'Account activated successfully. You can now login.')
@@ -93,11 +80,8 @@ def confirm_account(request, token):
         messages.error(request, 'Invalid confirmation link.')
         return redirect('home')  # Redirect to home page if token is invalid
 
-
-
 def signin(request):
     return render(request, "signin.html")
 
-@login_required
 def admin1(request):
     return render(request, "admin1.html")
